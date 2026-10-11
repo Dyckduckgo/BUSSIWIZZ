@@ -14,8 +14,10 @@ import os
 import sys
 import shutil
 import subprocess
+import zipfile
+import hashlib
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 if sys.platform == "win32":
     try:
@@ -27,11 +29,15 @@ if sys.platform == "win32":
 PROJECT_ROOT = Path(__file__).resolve().parent
 APP_NAME = "AI Stock Research"
 EXE_NAME = "AI Stock Research"
+VERSION = "1.0.0"
 DIST_DIR = PROJECT_ROOT / "dist"
 BUILD_DIR = PROJECT_ROOT / "build"
 ASSETS_DIR = PROJECT_ROOT / "assets"
 ICON_ICO = ASSETS_DIR / "icon.ico"
 ICON_PNG = ASSETS_DIR / "icon.png"
+ZIP_NAME = f"AI_Stock_Research_v{VERSION}_Windows_x64.zip"
+ZIP_PATH = DIST_DIR / ZIP_NAME
+SHA256_PATH = DIST_DIR / f"{ZIP_NAME}.sha256"
 
 REQUIRED_PACKAGES = {
     "flet": "flet",
@@ -173,6 +179,9 @@ def run_packaging(mode: str = "onedir") -> None:
         "yfinance",
         "groq",
         "requests",
+        "httpx",
+        "bs4",
+        "lxml",
         "platformdirs",
         "sqlite3",
         "config.app_config",
@@ -277,6 +286,64 @@ def verify_built_distribution(mode: str = "onedir") -> None:
             test_proc.kill()
 
 
+def create_release_archive(mode: str = "onedir") -> Tuple[Path, Path]:
+    """
+    Creates a standalone, versioned ZIP archive of the application distribution
+    and calculates its SHA-256 checksum for public GitHub release verification.
+    """
+    log(f"Creating release ZIP archive: {ZIP_NAME}...", "[*]")
+
+    if mode == "onedir":
+        source_dir = DIST_DIR / EXE_NAME
+        if not source_dir.is_dir():
+            raise FileNotFoundError(f"Distribution directory not found: {source_dir}")
+
+        # Build ZIP containing root folder 'AI Stock Research/'
+        with zipfile.ZipFile(ZIP_PATH, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(source_dir):
+                for file in files:
+                    full_path = Path(root) / file
+                    rel_path = Path(EXE_NAME) / full_path.relative_to(source_dir)
+                    zf.write(full_path, rel_path.as_posix())
+    else:
+        exe_file = DIST_DIR / f"{EXE_NAME}.exe"
+        if not exe_file.is_file():
+            raise FileNotFoundError(f"Executable not found: {exe_file}")
+        with zipfile.ZipFile(ZIP_PATH, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.write(exe_file, f"{EXE_NAME}.exe")
+
+    zip_size_mb = ZIP_PATH.stat().st_size / (1024 * 1024)
+    log(f"Release ZIP created: {ZIP_PATH} ({zip_size_mb:.2f} MB)", "[OK]")
+
+    # Verify ZIP integrity and contents
+    log("Verifying ZIP archive integrity and essential runtime files...", "[*]")
+    with zipfile.ZipFile(ZIP_PATH, "r") as zf:
+        namelist = zf.namelist()
+        expected_exe = f"{EXE_NAME}/{EXE_NAME}.exe" if mode == "onedir" else f"{EXE_NAME}.exe"
+        if expected_exe not in namelist:
+            raise RuntimeError(f"Integrity check failed: {expected_exe} missing in ZIP archive!")
+        # Ensure no .env or sensitive secrets in zip
+        for n in namelist:
+            if n.endswith(".env") or ".env." in n:
+                raise ValueError(f"Security violation: {n} found in release ZIP!")
+        log(f"Integrity check passed ({len(namelist)} files verified in archive).", "[OK]")
+
+    # Calculate SHA-256
+    log("Calculating SHA-256 release checksum...", "[*]")
+    sha256 = hashlib.sha256()
+    with open(ZIP_PATH, "rb") as f:
+        while chunk := f.read(65536):
+            sha256.update(chunk)
+    digest = sha256.hexdigest()
+
+    checksum_line = f"{digest} *{ZIP_NAME}\n"
+    SHA256_PATH.write_text(checksum_line, encoding="utf-8")
+    log(f"SHA-256 checksum verified: {digest}", "[OK]")
+    log(f"Checksum written to: {SHA256_PATH}", "[OK]")
+
+    return ZIP_PATH, SHA256_PATH
+
+
 def main() -> None:
     print("=" * 70)
     print("   AI STOCK RESEARCH - WINDOWS DESKTOP PACKAGING PIPELINE")
@@ -292,11 +359,14 @@ def main() -> None:
     clean_previous_builds()
     run_packaging(mode=mode)
     verify_built_distribution(mode=mode)
+    zip_file, sha256_file = create_release_archive(mode=mode)
 
     print("\n" + "=" * 70)
     print(f"  [OK] BUILD SUCCEEDED! STANDALONE WINDOWS APPLICATION IS READY.")
-    print(f"  Distribution directory: {DIST_DIR / EXE_NAME if mode == 'onedir' else DIST_DIR}")
-    print(f"  Executable: {DIST_DIR / EXE_NAME / (EXE_NAME + '.exe') if mode == 'onedir' else DIST_DIR / (EXE_NAME + '.exe')}")
+    print(f"  Distribution directory : {DIST_DIR / EXE_NAME if mode == 'onedir' else DIST_DIR}")
+    print(f"  Executable             : {DIST_DIR / EXE_NAME / (EXE_NAME + '.exe') if mode == 'onedir' else DIST_DIR / (EXE_NAME + '.exe')}")
+    print(f"  Release ZIP archive    : {zip_file}")
+    print(f"  SHA-256 checksum file  : {sha256_file}")
     print("=" * 70 + "\n")
 
 

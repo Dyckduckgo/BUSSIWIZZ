@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 venv/
 .venv/
 env/
@@ -7,8 +9,14 @@ __pycache__/
 *$py.class
 data/*.db
 data/*.sqlite
+data/*.db-wal
+data/*.db-shm
 *.db
 *.sqlite
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
 config.json
 .flet/
 .pytest_cache/
@@ -18,4 +26,11 @@ reports/*.md
 data/reports/
 dist/
 build/
+AI Stock Research.spec
 *.log
+*.zip
+*.sha256
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,12 +1,12 @@
-# AI Stock Research — Windows Desktop Distribution Guide
+# BussWizz (AI Stock Research) — Windows Desktop Distribution Guide
 
-This document describes how to package, distribute, and run **AI Stock Research** as a standalone Windows desktop application without requiring Python, Antigravity, or terminal tools on the end-user machine.
+This document describes how to package, distribute, and run **BussWizz** (packaged as **AI Stock Research**) as a standalone Windows desktop application without requiring Python, Antigravity, or terminal tools on the end-user machine.
 
 ---
 
 ## 1. Quick Build Command
 
-To compile the standalone Windows application bundle:
+To compile the standalone Windows application bundle and generate the release ZIP archive:
 
 ### Option A: Using the Automated Build Script (Recommended)
 ```cmd
@@ -16,13 +16,9 @@ Or double-click:
 ```cmd
 build_windows.bat
 ```
+*The build script automatically runs the PyInstaller/Flet build, verifies startup stability, packs the entire distribution into a versioned `.zip` archive, and computes the cryptographic SHA-256 checksum.*
 
-### Option B: Using the Flet CLI Directly
-```cmd
-flet pack app.py --onedir -n "AI Stock Research" -i "assets/icon.ico" --product-name "AI Stock Research" --file-description "AI Stock Research Institutional Equity Dashboard" --product-version "1.0.0" --company-name "AI Stock Research" --copyright "Copyright 2026 AI Stock Research" --add-data "assets;assets" --add-data "ui;ui" --add-data "config;config" --add-data "agents;agents" --add-data "database;database" --add-data "storage;storage" --add-data "services;services" --add-data "tools;tools" --hidden-import flet --hidden-import flet_desktop --hidden-import sqlalchemy --hidden-import sqlalchemy.dialects.sqlite --hidden-import pydantic --hidden-import yfinance --hidden-import groq --hidden-import requests --hidden-import platformdirs --hidden-import sqlite3 -y
-```
-
-### Option C: Using PyInstaller with the Included Spec File
+### Option B: Using PyInstaller with the Included Spec File
 ```cmd
 pyinstaller AIStockResearch.spec --noconfirm
 ```
@@ -31,18 +27,21 @@ pyinstaller AIStockResearch.spec --noconfirm
 
 ## 2. Output and Distribution Structure
 
-The build process outputs a complete standalone Windows application folder at:
+The build pipeline outputs to `dist/`:
 ```
 dist/
-└── AI Stock Research/
-    ├── AI Stock Research.exe    <-- Main desktop application executable
-    └── _internal/                <-- Python runtime, DLLs, Flutter engine, assets
+├── AI Stock Research/
+│   ├── AI Stock Research.exe                 <-- Main desktop application executable
+│   └── _internal/                             <-- Embedded Python runtime, Flutter engine, assets
+├── AI_Stock_Research_v1.0.0_Windows_x64.zip    <-- Complete portable release archive
+└── AI_Stock_Research_v1.0.0_Windows_x64.zip.sha256 <-- Verification checksum
 ```
 
-To distribute to end users:
-1. Zip the `dist/AI Stock Research` folder.
-2. The user unzips the folder and double-clicks `AI Stock Research.exe`.
-3. No Python installation, IDE, or terminal is required.
+### To Distribute on GitHub Releases:
+1. Tag your release on GitHub (e.g. `v1.0.0`).
+2. Attach `dist/AI_Stock_Research_v1.0.0_Windows_x64.zip` and `dist/AI_Stock_Research_v1.0.0_Windows_x64.zip.sha256` to the release.
+3. End users download and unzip `AI_Stock_Research_v1.0.0_Windows_x64.zip`, then double-click `AI Stock Research.exe`.
+4. No Python installation, IDE, or terminal is required.
 
 ---
 
@@ -84,3 +83,10 @@ To test the compiled executable before distribution:
 python -c "import subprocess, time; p = subprocess.Popen([r'dist\AI Stock Research\AI Stock Research.exe', '--web', '--port', '8699']); time.sleep(3); assert p.poll() is None, 'Failed'; p.terminate(); print('Binary test PASSED!')"
 ```
 Or launch `dist\AI Stock Research\AI Stock Research.exe` directly on any 64-bit Windows machine.
+
+### Verifying Release Checksums:
+End users can verify the integrity of the downloaded archive in Windows PowerShell:
+```powershell
+Get-FileHash .\AI_Stock_Research_v1.0.0_Windows_x64.zip -Algorithm SHA256
+```
+Compare the output string against the contents of `AI_Stock_Research_v1.0.0_Windows_x64.zip.sha256`.

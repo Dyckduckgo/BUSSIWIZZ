@@ -34,6 +34,11 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [OK] Build completed successfully. Executable is located in dist\AI Stock Research\
+echo ============================================================================
+echo   [OK] Build completed successfully!
+echo   Executable folder  : dist\AI Stock Research\
+echo   Release ZIP archive: dist\AI_Stock_Research_v1.0.0_Windows_x64.zip
+echo   SHA-256 checksum   : dist\AI_Stock_Research_v1.0.0_Windows_x64.zip.sha256
+echo ============================================================================
 echo.
 pause

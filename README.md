@@ -1,20 +1,39 @@
-# Bussiwzz - AI Stock Research & Equity Intelligence
+# BussWizz - AI Stock Research & Institutional Equity Intelligence
 
-Bussiwzz is an institutional-grade, cross-platform stock research agent and dashboard. It supports multiple presentation modes:
-1. **Native Desktop Dashboard (Tkinter)**: Ultra-fast, institutional dark terminal aesthetics, 100% self-contained with **zero third-party dependencies** required.
-2. **Modern Flet Research Dashboard**: Interactive multi-tab equity research application (desktop & web browser).
-3. **Web Browser Interface**: Accessible across different devices on custom network ports.
-4. **Command-Line Research Agent**: Fast terminal-driven research synthesis with live yfinance data, SEC EDGAR regulatory filings, and Groq LLM intelligence.
+**BussWizz** (packaged as **AI Stock Research**) is an institutional-grade stock research agent and analytical dashboard. It combines live market data from Yahoo Finance, regulatory filings from SEC EDGAR, academic R&D papers, and Groq LLM synthesis with multi-agent factual verification.
 
 ---
 
-## Quick Start on Any PC (Windows, macOS, Linux)
+## 🚀 Download Pre-Built Windows Application (No Python Required)
 
-Prerequisites: Python 3.10 or newer.
+For end users on Windows 10 or 11 (64-bit):
 
-### 1. Standalone Native Desktop GUI (Zero Setup / Zero Dependencies)
-Runs immediately without needing API keys or installing any pip packages:
-- **Windows**: Double-click `run_gui.bat` (or run `python run.py --gui`)
+1. **Download**: Get the latest `AI_Stock_Research_v1.0.0_Windows_x64.zip` from the [GitHub Releases](https://github.com/Dyckduckgo/BUSSIWIZZ/releases) page.
+2. **Extract**: Unzip the folder anywhere on your computer (e.g. `Desktop` or `Documents`).
+3. **Launch**: Open the extracted folder and double-click:
+   ```
+   AI Stock Research.exe
+   ```
+   *No installation, Python runtime, or command-line setup is needed.*
+
+### First-Run & API Key Setup
+- The application launches in dark institutional mode ready to analyze stocks.
+- **Configuring Groq API Key (Recommended)**:
+  1. Click the **Settings** gear icon in the lower-left sidebar.
+  2. Paste your free Groq API key from [https://console.groq.com/keys](https://console.groq.com/keys).
+  3. Click **Save Preferences**.
+  *Your API key is securely saved to your local Windows profile (`%APPDATA%\AIStockResearch\config.json`) and is never embedded in the app files.*
+- **Offline / Zero-Key Mode**: If no API key is configured, the agent seamlessly uses deterministic local factual synthesis without crashing.
+
+---
+
+## 🛠️ Running from Source (Developers & Cross-Platform)
+
+Prerequisites: Python 3.10 to 3.14 on Windows, macOS, or Linux.
+
+### Standalone Native GUI (Zero Dependencies)
+Runs immediately without installing any third-party pip packages:
+- **Windows**: Double-click `run_gui.bat` (or `python run.py --gui`)
 - **macOS / Linux**: Run `sh run_gui.sh` (or `python3 run.py --gui`)
 
 *Linux Note: If Tkinter is not pre-installed on your distribution, install it via:*
@@ -109,7 +128,20 @@ python run.py --check
 
 ## Cross-PC Portability & Git Pulls
 
-- **No Machine-Specific Paths**: Virtual environments are local and ignored by Git. Launchers automatically detect and validate local Python interpreters without crashing on foreign paths.
-- **Auto-Bootstrapping**: If you invoke `python app.py` or `python main.py` using your global Python interpreter, the application automatically locates the local `.venv` and runs seamlessly.
-- **Port Conflict Handling**: The web server detects occupied network ports and automatically resolves to available open ports.
 - **Encoding Resilient**: UTF-8 output streams are enforced across Windows, Linux, and macOS consoles.
+
+---
+
+## 📦 Building Standalone Windows Releases
+
+To compile the application into a standalone Windows desktop executable and release ZIP:
+```cmd
+build_windows.bat
+# Or: python build_windows.py
+```
+This automatically produces:
+1. `dist\AI Stock Research\` — Standalone desktop application folder.
+2. `dist\AI_Stock_Research_v1.0.0_Windows_x64.zip` — Portable release archive for distribution.
+3. `dist\AI_Stock_Research_v1.0.0_Windows_x64.zip.sha256` — Cryptographic checksum for release verification.
+
+See [DISTRIBUTION.md](DISTRIBUTION.md) for complete packaging, security isolation, and GitHub release deployment documentation.
