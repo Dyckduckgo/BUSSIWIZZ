@@ -403,16 +403,10 @@ def run_stock_research(company_name: str) -> None:
 
 def main():
     # Support launching GUI via flags
-    if "--gui" in sys.argv or "--windows" in sys.argv:
-        from gui import launch_gui
-        print("[*] Launching Windows Native GUI...")
-        launch_gui()
-        return
-
-    if "--ui" in sys.argv:
-        from ui.app import launch_ui
-        print("[*] Launching Flet Desktop UI...")
-        launch_ui()
+    if "--gui" in sys.argv or "--ui" in sys.argv or "--windows" in sys.argv:
+        from app import launch_app
+        print("[*] Launching AI Stock Research Flet Dashboard...")
+        launch_app(web="--web" in sys.argv)
         return
 
     print("=" * 68)

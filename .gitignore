@@ -6,8 +6,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 data/*.db
+data/*.sqlite
+*.db
+*.sqlite
+config.json
 .flet/
 .pytest_cache/
 reports/*.txt
 reports/*.pdf
+reports/*.md
+data/reports/
+dist/
+build/
 *.log

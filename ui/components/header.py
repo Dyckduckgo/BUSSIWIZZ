@@ -39,6 +39,11 @@ class Header(ft.Container):
         self.build_ui()
         self.update()
 
+    def set_status(self, status_text: str):
+        self.data["status"] = status_text
+        self.build_ui()
+        self.update()
+
     def build_ui(self):
         company_name = self.data.get("company", "NVIDIA Corporation")
         ticker = self.data.get("ticker", "NVDA")
@@ -77,8 +82,87 @@ class Header(ft.Container):
                 ft.Text("Autonomous Multimodal Research & Valuation Analysis", size=12, color=TEXT_MUTED),
             ], spacing=2, expand=True),
 
-            # Right: Date & Status Badge
+            # Right: Score, Status & Date Badges
             ft.Row([
+                # Overall Research Score Badge
+                ft.Container(
+                    content=ft.Row([
+                        ft.Icon(ft.Icons.ANALYTICS_OUTLINED, size=14, color="#38BDF8"),
+                        ft.Text(
+                            f"Overall Score: {self.data.get('research_score', {}).get('total', 92.5) if isinstance(self.data.get('research_score'), dict) else 92.5}/100",
+                            size=12,
+                            weight=ft.FontWeight.BOLD,
+                            color=TEXT_PRIMARY,
+                        ),
+                    ], spacing=6),
+                    bgcolor="#0C4A6E",
+                    padding=ft.Padding(10, 6, 10, 6),
+                    border_radius=8,
+                    border=ft.Border(
+                        top=ft.BorderSide(1, "#0284C7"),
+                        bottom=ft.BorderSide(1, "#0284C7"),
+                        left=ft.BorderSide(1, "#0284C7"),
+                        right=ft.BorderSide(1, "#0284C7"),
+                    ),
+                ),
+                # Dynamic Status Chip
+                ft.Container(
+                    content=ft.Row([
+                        ft.Container(
+                            width=8,
+                            height=8,
+                            bgcolor=(
+                                "#38BDF8" if any(k in self.data.get("status", "").lower() for k in ["progress", "research", "running"])
+                                else ("#EF4444" if any(k in self.data.get("status", "").lower() for k in ["fail", "error", "timeout"])
+                                else ("#F59E0B" if "cancel" in self.data.get("status", "").lower() else SUCCESS_GREEN))
+                            ),
+                            border_radius=4,
+                        ),
+                        ft.Text(
+                            self.data.get("status", "Report Ready"),
+                            size=12,
+                            weight=ft.FontWeight.W_600,
+                            color=(
+                                "#38BDF8" if any(k in self.data.get("status", "").lower() for k in ["progress", "research", "running"])
+                                else ("#EF4444" if any(k in self.data.get("status", "").lower() for k in ["fail", "error", "timeout"])
+                                else ("#F59E0B" if "cancel" in self.data.get("status", "").lower() else SUCCESS_GREEN))
+                            ),
+                        ),
+                    ], spacing=6),
+                    bgcolor=(
+                        "#0C4A6E" if any(k in self.data.get("status", "").lower() for k in ["progress", "research", "running"])
+                        else ("#450A0A" if any(k in self.data.get("status", "").lower() for k in ["fail", "error", "timeout"])
+                        else ("#451A03" if "cancel" in self.data.get("status", "").lower() else "#064E3B"))
+                    ),
+                    padding=ft.Padding(10, 6, 10, 6),
+                    border_radius=8,
+                    border=ft.Border(
+                        top=ft.BorderSide(
+                            1,
+                            "#0284C7" if any(k in self.data.get("status", "").lower() for k in ["progress", "research", "running"])
+                            else ("#EF4444" if any(k in self.data.get("status", "").lower() for k in ["fail", "error", "timeout"])
+                            else ("#F59E0B" if "cancel" in self.data.get("status", "").lower() else SUCCESS_GREEN))
+                        ),
+                        bottom=ft.BorderSide(
+                            1,
+                            "#0284C7" if any(k in self.data.get("status", "").lower() for k in ["progress", "research", "running"])
+                            else ("#EF4444" if any(k in self.data.get("status", "").lower() for k in ["fail", "error", "timeout"])
+                            else ("#F59E0B" if "cancel" in self.data.get("status", "").lower() else SUCCESS_GREEN))
+                        ),
+                        left=ft.BorderSide(
+                            1,
+                            "#0284C7" if any(k in self.data.get("status", "").lower() for k in ["progress", "research", "running"])
+                            else ("#EF4444" if any(k in self.data.get("status", "").lower() for k in ["fail", "error", "timeout"])
+                            else ("#F59E0B" if "cancel" in self.data.get("status", "").lower() else SUCCESS_GREEN))
+                        ),
+                        right=ft.BorderSide(
+                            1,
+                            "#0284C7" if any(k in self.data.get("status", "").lower() for k in ["progress", "research", "running"])
+                            else ("#EF4444" if any(k in self.data.get("status", "").lower() for k in ["fail", "error", "timeout"])
+                            else ("#F59E0B" if "cancel" in self.data.get("status", "").lower() else SUCCESS_GREEN))
+                        ),
+                    ),
+                ),
                 # Date Chip
                 ft.Container(
                     content=ft.Row([
@@ -89,21 +173,5 @@ class Header(ft.Container):
                     padding=ft.Padding(10, 6, 10, 6),
                     border_radius=8,
                 ),
-                # Status Chip
-                ft.Container(
-                    content=ft.Row([
-                        ft.Container(width=8, height=8, bgcolor=SUCCESS_GREEN, border_radius=4),
-                        ft.Text("Report Ready", size=12, weight=ft.FontWeight.W_600, color=SUCCESS_GREEN),
-                    ], spacing=6),
-                    bgcolor="#064E3B",
-                    padding=ft.Padding(10, 6, 10, 6),
-                    border_radius=8,
-                    border=ft.Border(
-                        top=ft.BorderSide(1, SUCCESS_GREEN),
-                        bottom=ft.BorderSide(1, SUCCESS_GREEN),
-                        left=ft.BorderSide(1, SUCCESS_GREEN),
-                        right=ft.BorderSide(1, SUCCESS_GREEN),
-                    ),
-                ),
             ], spacing=8, wrap=True),
-        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True)
+        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, vertical_alignment=ft.CrossAxisAlignment.CENTER)

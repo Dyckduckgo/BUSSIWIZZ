@@ -21,7 +21,7 @@ TABS: List[Tuple[str, str, str]] = [
     ("rnd", "R&D", ft.Icons.BIOTECH_OUTLINED),
     ("news", "News", ft.Icons.NEWSPAPER_OUTLINED),
     ("risks", "Risks", ft.Icons.WARNING_AMBER_OUTLINED),
-    ("scenarios", "Bull / Base / Bear", ft.Icons.CALL_SPLIT_OUTLINED),
+    ("scenarios", "Bull/Base/Bear", ft.Icons.CALL_SPLIT_OUTLINED),
     ("sources", "Sources", ft.Icons.LINK_OUTLINED),
     ("history", "History", ft.Icons.HISTORY_OUTLINED),
 ]
@@ -64,10 +64,10 @@ class Navigation(ft.Container):
                 content=ft.Row([
                     ft.Icon(icon, size=15, color=fg),
                     ft.Text(label, size=12, weight=ft.FontWeight.W_600 if is_active else ft.FontWeight.NORMAL, color=fg),
-                ], spacing=6, alignment=ft.MainAxisAlignment.CENTER),
+                ], spacing=6, alignment=ft.MainAxisAlignment.CENTER, tight=True),
                 bgcolor=bg,
                 border_radius=7,
-                padding=ft.Padding(12, 8, 12, 8),
+                padding=ft.Padding(14, 8, 14, 8),
                 on_click=make_handler(key),
                 animate=ft.Animation(150, ft.AnimationCurve.EASE_IN_OUT),
             )
@@ -76,7 +76,7 @@ class Navigation(ft.Container):
         self.content = ft.Row(
             controls=buttons,
             spacing=4,
-            wrap=True,
+            scroll=ft.ScrollMode.AUTO,
             alignment=ft.MainAxisAlignment.START,
         )
 

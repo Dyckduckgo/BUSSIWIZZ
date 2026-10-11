@@ -81,7 +81,7 @@ class RndTab(ft.Container):
                 "Over 65% of entire enterprise workforce in R&D",
                 ft.Icons.ENGINEERING_OUTLINED,
             ),
-        ], spacing=10, wrap=True)
+        ], spacing=10)
 
         # Strategic Innovation Initiatives Cards
         cards = []

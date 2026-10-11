@@ -93,6 +93,7 @@ async def main(page: ft.Page):
             "searxng_mcp": ("SearXNG Web MCP", ft.Icons.TRAVEL_EXPLORE),
             "yfinance": ("yfinance Market Data", ft.Icons.SHOW_CHART),
             "sec_edgar": ("SEC EDGAR Filings", ft.Icons.ACCOUNT_BALANCE),
+            "rd_agent": ("R&D Tech Agent", ft.Icons.BIOTECH),
             "groq_llm": ("Groq LLM", ft.Icons.PSYCHOLOGY),
             "sqlite_db": ("SQLite Database", ft.Icons.STORAGE),
             "openalex_papers": ("OpenAlex Papers", ft.Icons.MENU_BOOK),
@@ -141,6 +142,7 @@ async def main(page: ft.Page):
             ft.Segment(value="report", label=ft.Text("Research Report"), icon=ft.Icon(ft.Icons.DESCRIPTION)),
             ft.Segment(value="financials", label=ft.Text("Financial Metrics"), icon=ft.Icon(ft.Icons.TABLE_CHART)),
             ft.Segment(value="sec", label=ft.Text("SEC Filings & Facts"), icon=ft.Icon(ft.Icons.ACCOUNT_BALANCE)),
+            ft.Segment(value="rd", label=ft.Text("R&D & Tech"), icon=ft.Icon(ft.Icons.BIOTECH)),
             ft.Segment(value="web", label=ft.Text("Web Sources"), icon=ft.Icon(ft.Icons.PUBLIC)),
             ft.Segment(value="history", label=ft.Text("Past Sessions"), icon=ft.Icon(ft.Icons.HISTORY)),
         ],
@@ -255,6 +257,103 @@ async def main(page: ft.Page):
                     for fact in sec_report.facts[:8]:
                         items.append(
                             ft.Text(f"• {fact.claim}: {fact.value or 'Disclosed'} (Form {fact.filing_type} - {fact.filing_date})", size=13)
+                        )
+
+                content_area.content = ft.Column(items, scroll=ft.ScrollMode.AUTO)
+
+        elif active_tab == "rd":
+            rd_report = current_data.get("rd_report")
+            if not rd_report:
+                content_area.content = ft.Text("No R&D / technology research report available for this company.", color=ft.Colors.GREY_400)
+            else:
+                items = [
+                    ft.Text(f"R&D & Emerging Technology Activity: {rd_report.company} ({rd_report.ticker})", size=18, weight=ft.FontWeight.BOLD),
+                    ft.Divider(),
+                ]
+
+                # 1. R&D Spending Section
+                if rd_report.rd_spending:
+                    sp = rd_report.rd_spending
+                    items.append(
+                        ft.Card(
+                            content=ft.Container(
+                                content=ft.Column([
+                                    ft.Row([
+                                        ft.Text("Official GAAP R&D Expenditure", weight=ft.FontWeight.BOLD, color=ft.Colors.CYAN_200, size=15),
+                                        ft.Text(f"Form {sp.get('form')}", size=12, color=ft.Colors.LIGHT_BLUE_200),
+                                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                                    ft.Text(f"Reported Amount: {sp.get('latest_formatted')}", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.GREEN_300),
+                                    ft.Text(f"Period Ended: {sp.get('period_ended')} | Filed Date: {sp.get('filed_date')} | Accn: {sp.get('accession_number')}", size=11, color=ft.Colors.GREY_400),
+                                    ft.Text(f"SEC Filing Archive: {sp.get('source_url')}", size=11, color=ft.Colors.BLUE_300, selectable=True),
+                                ], spacing=6),
+                                padding=14,
+                            )
+                        )
+                    )
+
+                # 2. Major Developments (6 Questions Evaluated)
+                if rd_report.major_developments:
+                    items.append(ft.Divider())
+                    items.append(ft.Text("Major Technology Developments (6-Point Analytical Deep Dive):", size=15, weight=ft.FontWeight.BOLD))
+                    for dev in rd_report.major_developments:
+                        status_color = ft.Colors.GREEN_400 if dev.epistemic_status == "FACT" else (
+                            ft.Colors.BLUE_300 if dev.epistemic_status == "INFERENCE" else ft.Colors.AMBER_400
+                        )
+                        items.append(
+                            ft.Card(
+                                content=ft.Container(
+                                    content=ft.Column([
+                                        ft.Row([
+                                            ft.Text(dev.title, weight=ft.FontWeight.BOLD, size=14, color=ft.Colors.WHITE, expand=True),
+                                            ft.Container(
+                                                content=ft.Text(f"[{dev.epistemic_status}]", size=11, weight=ft.FontWeight.BOLD, color=status_color),
+                                                bgcolor=ft.Colors.GREY_900,
+                                                padding=ft.Padding(6, 2, 6, 2),
+                                                border_radius=6,
+                                            ),
+                                        ]),
+                                        ft.Text(f"Category: {dev.category}", size=12, color=ft.Colors.GREY_400, italic=True),
+                                        ft.Text(f"• What researching/building: {dev.researching_building}", size=13),
+                                        ft.Text(f"• Maturity level: {dev.maturity}", size=13, color=ft.Colors.CYAN_100),
+                                        ft.Text(f"• Why it matters: {dev.why_it_matters}", size=13),
+                                        ft.Text(f"• Market affected: {dev.market_affected}", size=13),
+                                        ft.Text(f"• Possible financial impact: {dev.possible_financial_impact}", size=13, color=ft.Colors.GREEN_200),
+                                        ft.Text(f"• Key barriers/risks: {dev.key_risks_or_barriers}", size=13, color=ft.Colors.RED_200),
+                                    ], spacing=6),
+                                    padding=14,
+                                )
+                            )
+                        )
+
+                # 3. Categorized Discoveries with Epistemic Classification
+                if rd_report.discoveries:
+                    items.append(ft.Divider())
+                    items.append(ft.Text("Important Technology Discoveries & Epistemic Audit:", size=15, weight=ft.FontWeight.BOLD))
+                    for d in rd_report.discoveries:
+                        badge_color = ft.Colors.GREEN_400 if d.epistemic_status == "FACT" else (
+                            ft.Colors.BLUE_300 if d.epistemic_status == "INFERENCE" else ft.Colors.AMBER_400
+                        )
+                        items.append(
+                            ft.Card(
+                                content=ft.Container(
+                                    content=ft.Column([
+                                        ft.Row([
+                                            ft.Text(d.claim, weight=ft.FontWeight.BOLD, size=13, expand=True),
+                                            ft.Container(
+                                                content=ft.Text(f"[{d.epistemic_status}]", size=11, weight=ft.FontWeight.BOLD, color=badge_color),
+                                                bgcolor=ft.Colors.GREY_900,
+                                                padding=ft.Padding(6, 2, 6, 2),
+                                                border_radius=4,
+                                            ),
+                                        ]),
+                                        ft.Text(f"Category: {d.category} | Confidence: {d.confidence:.0%}", size=11, color=ft.Colors.GREY_400),
+                                        ft.Text(f"Company Relevance: {d.company_relevance}", size=12),
+                                        ft.Text(f"Business Impact: {d.potential_business_impact}", size=12, color=ft.Colors.LIGHT_BLUE_100),
+                                        ft.Text(f"Source: {d.source_name} ({d.publication_date}) - {d.source_url}", size=11, color=ft.Colors.BLUE_300, selectable=True),
+                                    ], spacing=4),
+                                    padding=12,
+                                )
+                            )
                         )
 
                 content_area.content = ft.Column(items, scroll=ft.ScrollMode.AUTO)

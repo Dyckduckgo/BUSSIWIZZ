@@ -118,7 +118,7 @@ class ScoreCard(ft.Container):
                     ], spacing=10, wrap=True),
                     ft.Text(verdict_text, size=13, color=TEXT_SECONDARY, max_lines=2, overflow=ft.TextOverflow.ELLIPSIS),
                 ], spacing=4, expand=True),
-            ], spacing=20, alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.CENTER, wrap=True),
+            ], spacing=20, alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.CENTER),
             bgcolor=BG_SURFACE,
             border_radius=12,
             padding=18,
@@ -136,13 +136,13 @@ class ScoreCard(ft.Container):
             self._build_metric_tile("Financial Health", scores.get("financial_health", 91), ft.Icons.FAVORITE_BORDER),
             self._build_metric_tile("Growth Momentum", scores.get("growth", 96), ft.Icons.TRENDING_UP),
             self._build_metric_tile("Competitive Advantage", scores.get("competitive_advantage", 95), ft.Icons.SHIELD_OUTLINED),
-        ], spacing=10, wrap=True)
+        ], spacing=10)
 
         row2 = ft.Row([
             self._build_metric_tile("Valuation Score", scores.get("valuation", 68), ft.Icons.PRICE_CHECK_OUTLINED),
             self._build_metric_tile("R&D & Innovation", scores.get("rnd", 92), ft.Icons.SCIENCE_OUTLINED),
             self._build_metric_tile("Risk Assessment", scores.get("risk", 42), ft.Icons.WARNING_AMBER_OUTLINED, is_risk=True),
-        ], spacing=10, wrap=True)
+        ], spacing=10)
 
         self.content = ft.Column([
             overall_hero,

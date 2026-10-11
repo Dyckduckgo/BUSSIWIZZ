@@ -118,10 +118,7 @@ Examples:
     if args.setup:
         return setup_virtualenv()
 
-    if args.gui:
-        return launch_native_gui()
-
-    if args.app:
+    if args.gui or args.app:
         return launch_flet_app(web=False)
 
     if args.web:
@@ -131,14 +128,14 @@ Examples:
         return launch_cli_agent(ticker=args.cli if args.cli else None)
 
     # Default action (no flag specified):
-    # If a display is available, start native GUI.
+    # If a display is available, start Flet desktop GUI.
     # If headless (e.g. cloud VM, remote Linux server, container without DISPLAY), launch web mode.
     is_headless = sys.platform != "win32" and not (os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY"))
     if is_headless:
-        print("[Bussiwzz] No graphical display detected. Starting in Web Browser mode...")
+        print("[AI Stock Research] No graphical display detected. Starting in Web Browser mode...")
         return launch_flet_app(web=True, host=args.host, port=args.port)
     else:
-        return launch_native_gui()
+        return launch_flet_app(web=False)
 
 
 if __name__ == "__main__":

@@ -52,28 +52,63 @@ class ProgressPanel(ft.Container):
         self.update()
 
     def build_ui(self):
-        steps = self.data.get("progress_steps", [])
+        default_steps = [
+            {"step": "Web Research", "status": "Completed", "detail": "Gathered recent market intelligence and corporate filings."},
+            {"step": "Financial Analysis", "status": "Completed", "detail": "Verified key fundamental valuation metrics and margins."},
+            {"step": "SEC Research", "status": "Completed", "detail": "Parsed official corporate disclosures and 10-K/10-Q filings."},
+            {"step": "R&D Research", "status": "Completed", "detail": "Surveyed strategic technology roadmap and patent activity."},
+            {"step": "Verification", "status": "Completed", "detail": "Cross-referenced all evidence against primary financial sources."},
+            {"step": "Final Analysis", "status": "Completed", "detail": "Synthesized multi-factor scorecard and Bull/Base/Bear scenarios."},
+        ]
+        steps = self.data.get("progress_steps") or default_steps
 
         # Step Tiles
         tiles = []
+        completed_count = 0
+        in_progress_count = 0
+
         for i, item in enumerate(steps, 1):
             name = item.get("step", f"Stage {i}")
-            status = item.get("status", "Completed")
-            detail = item.get("detail", "Analysis complete.")
+            status = item.get("status", "Pending")
+            detail = item.get("detail", "Analysis pending.")
+            st_lower = status.lower()
+
+            if st_lower in ["running", "in progress"]:
+                in_progress_count += 1
+                icon_widget = ft.ProgressRing(width=14, height=14, stroke_width=2, color="#38BDF8")
+                icon_bg = "#0C4A6E"
+                status_color = "#38BDF8"
+            elif st_lower in ["completed", "complete", "success"]:
+                completed_count += 1
+                icon_widget = ft.Icon(ft.Icons.CHECK, size=14, color=SUCCESS_GREEN)
+                icon_bg = "#064E3B"
+                status_color = SUCCESS_GREEN
+            elif st_lower in ["failed", "error", "timeout"]:
+                icon_widget = ft.Icon(ft.Icons.ERROR_OUTLINE, size=14, color="#EF4444")
+                icon_bg = "#450A0A"
+                status_color = "#EF4444"
+            elif st_lower in ["cancelled", "canceled"]:
+                icon_widget = ft.Icon(ft.Icons.CANCEL_OUTLINED, size=14, color="#F59E0B")
+                icon_bg = "#451A03"
+                status_color = "#F59E0B"
+            else:  # Pending
+                icon_widget = ft.Icon(ft.Icons.SCHEDULE, size=14, color=TEXT_MUTED)
+                icon_bg = "#1E293B"
+                status_color = TEXT_MUTED
 
             tile = ft.Container(
                 content=ft.Row([
-                    # Stage Icon / Number
+                    # Stage Icon / Spinner
                     ft.Container(
-                        content=ft.Icon(ft.Icons.CHECK, size=14, color=SUCCESS_GREEN),
-                        bgcolor="#064E3B",
+                        content=icon_widget,
+                        bgcolor=icon_bg,
                         border_radius=12,
                         padding=4,
                     ),
                     ft.Column([
                         ft.Row([
                             ft.Text(f"{i}. {name}", size=12, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
-                            ft.Text(f"• {status}", size=11, color=SUCCESS_GREEN, weight=ft.FontWeight.W_600),
+                            ft.Text(f"• {status}", size=11, color=status_color, weight=ft.FontWeight.W_600),
                         ], spacing=6),
                         ft.Text(detail, size=11, color=TEXT_MUTED, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
                     ], spacing=1, expand=True),
@@ -92,16 +127,39 @@ class ProgressPanel(ft.Container):
             tiles.append(tile)
 
         # 2 rows of 3 columns
-        row1 = ft.Row(tiles[:3], spacing=10, wrap=True)
-        row2 = ft.Row(tiles[3:], spacing=10, wrap=True)
+        row1 = ft.Row(tiles[:3], spacing=10)
+        row2 = ft.Row(tiles[3:], spacing=10)
+
+        progress_ratio = completed_count / max(len(steps), 1)
+
+        if completed_count == len(steps):
+            badge_text = "100% Complete"
+            badge_bg = "#064E3B"
+            badge_fg = SUCCESS_GREEN
+            bar_color = SUCCESS_GREEN
+        elif in_progress_count > 0:
+            badge_text = f"Live: Stage {completed_count + 1} of {len(steps)}"
+            badge_bg = "#0C4A6E"
+            badge_fg = "#38BDF8"
+            bar_color = "#38BDF8"
+        elif any(s.get("status", "").lower() in ["failed", "error", "timeout"] for s in steps):
+            badge_text = "Stage Interrupted"
+            badge_bg = "#450A0A"
+            badge_fg = "#EF4444"
+            bar_color = "#EF4444"
+        else:
+            badge_text = f"{completed_count}/{len(steps)} Complete"
+            badge_bg = "#1E293B"
+            badge_fg = TEXT_MUTED
+            bar_color = PRIMARY
 
         header_row = ft.Row([
             ft.Row([
                 ft.Icon(ft.Icons.AUTO_AWESOME, size=16, color=PRIMARY),
                 ft.Text("RESEARCH EXECUTION PIPELINE", size=12, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
                 ft.Container(
-                    content=ft.Text("100% Complete", size=11, weight=ft.FontWeight.BOLD, color=SUCCESS_GREEN),
-                    bgcolor="#064E3B",
+                    content=ft.Text(badge_text, size=11, weight=ft.FontWeight.BOLD, color=badge_fg),
+                    bgcolor=badge_bg,
                     padding=ft.Padding(6, 2, 6, 2),
                     border_radius=4,
                 ),
@@ -118,7 +176,7 @@ class ProgressPanel(ft.Container):
         elements = [header_row]
         if self.is_expanded:
             elements.extend([
-                ft.ProgressBar(value=1.0, color=SUCCESS_GREEN, bgcolor="#1E293B", height=4),
+                ft.ProgressBar(value=progress_ratio, color=bar_color, bgcolor="#1E293B", height=4),
                 row1,
                 row2,
             ])

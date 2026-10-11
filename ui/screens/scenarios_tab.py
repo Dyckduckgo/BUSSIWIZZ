@@ -140,7 +140,7 @@ class ScenariosTab(ft.Container):
             bull_card,
             base_card,
             bear_card,
-        ], spacing=12, wrap=True)
+        ], spacing=12)
 
         self.content = ft.Column([
             ft.Row([

@@ -61,13 +61,13 @@ class OverviewTab(ft.Container):
             self._build_info_tile("LEADERSHIP", overview.get("ceo", "Jensen Huang"), ft.Icons.PERSON_OUTLINED),
             self._build_info_tile("FOUNDED", overview.get("founded", "1993"), ft.Icons.EVENT_OUTLINED),
             self._build_info_tile("HEADQUARTERS", overview.get("headquarters", "Santa Clara, CA"), ft.Icons.LOCATION_ON_OUTLINED),
-        ], spacing=10, wrap=True)
+        ], spacing=10)
 
         row2 = ft.Row([
             self._build_info_tile("EMPLOYEES", overview.get("employees", "29,600+"), ft.Icons.GROUPS_OUTLINED),
             self._build_info_tile("SECTOR", overview.get("sector", "Information Technology"), ft.Icons.CATEGORY_OUTLINED),
             self._build_info_tile("INDUSTRY", overview.get("industry", "Semiconductors"), ft.Icons.MEMORY_OUTLINED),
-        ], spacing=10, wrap=True)
+        ], spacing=10)
 
         # Company Description Card
         desc_card = ft.Container(

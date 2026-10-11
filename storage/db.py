@@ -14,8 +14,15 @@ from contextlib import contextmanager
 class Database:
     """Thread-safe SQLite storage for stock research sessions and extracted data."""
 
-    def __init__(self, db_path: str = "data/research.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: Optional[str] = None):
+        if db_path is None:
+            try:
+                from config.app_config import get_db_path
+                self.db_path = str(get_db_path())
+            except Exception:
+                self.db_path = "data/research.db"
+        else:
+            self.db_path = db_path
         os.makedirs(os.path.dirname(os.path.abspath(self.db_path)), exist_ok=True)
         self._init_db()
 
@@ -94,6 +101,23 @@ class Database:
                     FOREIGN KEY (session_id) REFERENCES research_sessions (session_id)
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS rd_discoveries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL,
+                    ticker TEXT NOT NULL,
+                    claim TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    source_url TEXT,
+                    source_name TEXT,
+                    publication_date TEXT,
+                    company_relevance TEXT,
+                    potential_business_impact TEXT,
+                    confidence REAL,
+                    epistemic_status TEXT,
+                    FOREIGN KEY (session_id) REFERENCES research_sessions (session_id)
+                )
+            """)
             conn.commit()
 
     def check_health(self) -> Dict[str, Any]:
@@ -117,6 +141,7 @@ class Database:
         sec_facts: Optional[List[Dict[str, Any]]] = None,
         web_sources: Optional[List[Dict[str, Any]]] = None,
         raw_data: Optional[Dict[str, Any]] = None,
+        rd_discoveries: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """Persists a complete research session and its associated data points."""
         with self._get_connection() as conn:
@@ -208,6 +233,30 @@ class Database:
                         ),
                     )
 
+            # Save R&D Discoveries
+            if rd_discoveries:
+                for d in rd_discoveries:
+                    conn.execute(
+                        """
+                        INSERT INTO rd_discoveries
+                        (session_id, ticker, claim, category, source_url, source_name, publication_date, company_relevance, potential_business_impact, confidence, epistemic_status)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            session_id,
+                            ticker,
+                            d.get("claim", ""),
+                            d.get("category", "New technologies"),
+                            d.get("source_url", ""),
+                            d.get("source_name", ""),
+                            d.get("publication_date", ""),
+                            d.get("company_relevance", ""),
+                            d.get("potential_business_impact", ""),
+                            d.get("confidence", 0.8),
+                            d.get("epistemic_status", "FACT"),
+                        ),
+                    )
+
             conn.commit()
 
     def get_recent_sessions(self, limit: int = 15) -> List[Dict[str, Any]]:
@@ -249,5 +298,9 @@ class Database:
             # Fetch Web sources
             cur.execute("SELECT * FROM web_sources WHERE session_id = ?", (session_id,))
             result["web_sources"] = [dict(r) for r in cur.fetchall()]
+
+            # Fetch R&D discoveries
+            cur.execute("SELECT * FROM rd_discoveries WHERE session_id = ?", (session_id,))
+            result["rd_discoveries"] = [dict(r) for r in cur.fetchall()]
 
             return result

@@ -28,6 +28,7 @@ from tools.financial.yfinance_client import YFinanceClient
 from tools.sec.sec_client import SECClient
 from tools.papers.openalex_client import OpenAlexClient
 from agents.sec_agent import SECAgent, SECResearchReport
+from agents.rd_agent import RDAgent, RDResearchReport
 from financial_data import FinancialMetrics
 
 try:
@@ -76,6 +77,12 @@ class ResearchOrchestrator:
         self.yfinance_client = YFinanceClient()
         self.sec_agent = SECAgent()
         self.papers_client = OpenAlexClient()
+        self.rd_agent = RDAgent(
+            searxng_client=self.searxng_client,
+            sec_client=self.sec_agent.client,
+            papers_client=self.papers_client,
+            groq_api_key=self.groq_api_key,
+        )
 
     def check_all_health(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -85,6 +92,7 @@ class ResearchOrchestrator:
         yfinance_health = self.yfinance_client.check_health()
         sec_health = self.sec_agent.client.check_health()
         papers_health = self.papers_client.check_health()
+        rd_health = self.rd_agent.check_health()
 
         groq_status = "available" if self.groq_api_key else "missing_key"
         groq_message = (
@@ -97,6 +105,7 @@ class ResearchOrchestrator:
             "searxng_mcp": searxng_health,
             "yfinance": yfinance_health,
             "sec_edgar": sec_health,
+            "rd_agent": rd_health,
             "openalex_papers": papers_health,
             "groq_llm": {
                 "status": groq_status,
@@ -112,19 +121,20 @@ class ResearchOrchestrator:
         include_papers: bool = False,
     ) -> Dict[str, Any]:
         """
-        Executes concurrent research across yfinance, SEC EDGAR, SearXNG MCP / fallback,
-        and optional paper search, followed by synthesis.
+        Executes concurrent research across yfinance, SEC EDGAR, RDAgent,
+        SearXNG MCP / fallback, and optional paper search, followed by synthesis.
         """
         clean_target = company_or_ticker.strip()
         fallbacks_used: List[str] = []
         health_statuses = self.check_all_health()
 
-        # Step 1: Launch Concurrent Research Tasks
+        # Step 1: Launch Concurrent Research Tasks across all agents & tools
         task_financial = self.yfinance_client.get_financial_metrics_async(clean_target)
         task_sec = asyncio.to_thread(self.sec_agent.run, clean_target)
+        task_rd = self.rd_agent.run_async(clean_target)
         task_web = self.searxng_client.search(f"{clean_target} stock financial earnings risks 2026", max_results=5)
 
-        tasks = [task_financial, task_sec, task_web]
+        tasks = [task_financial, task_sec, task_rd, task_web]
         if include_papers:
             task_papers = self.papers_client.search_papers(f"{clean_target} architecture technology", max_results=3)
             tasks.append(task_papers)
@@ -162,8 +172,22 @@ class ResearchOrchestrator:
                 fallbacks_used.append("SEC EDGAR: No US public filer CIK resolved for this query.")
                 sec_context = f"SEC filings: No US public filer CIK found for '{clean_target}'."
 
-        # Step 4: Unpack and Verify Web Research (SearXNG / Fallback)
-        web_res = results[2]
+        # Step 4: Unpack and Verify R&D Agent Findings
+        rd_res = results[2]
+        rd_report: Optional[RDResearchReport] = None
+        rd_context = ""
+        if isinstance(rd_res, Exception):
+            fallbacks_used.append(f"R&D Agent Tool Exception: {str(rd_res)}")
+            rd_context = "R&D technology research unavailable."
+        else:
+            rd_report = rd_res
+            if rd_report:
+                rd_context = rd_report.to_prompt_context()
+            else:
+                rd_context = f"R&D activity: No detailed technology disclosures resolved for '{clean_target}'."
+
+        # Step 5: Unpack and Verify Web Research (SearXNG / Fallback)
+        web_res = results[3]
         web_results: List[Dict[str, Any]] = []
         web_source_mode = "unknown"
         web_context = ""
@@ -188,8 +212,8 @@ class ResearchOrchestrator:
         # Optional Papers
         papers_results: List[Dict[str, Any]] = []
         papers_context = ""
-        if include_papers and len(results) > 3:
-            papers_res = results[3]
+        if include_papers and len(results) > 4:
+            papers_res = results[4]
             if not isinstance(papers_res, Exception) and papers_res.get("results"):
                 papers_results = papers_res.get("results", [])
                 formatted_papers = [
@@ -212,24 +236,28 @@ class ResearchOrchestrator:
 === OFFICIAL SEC EDGAR FILINGS & XBRL FACTS ===
 {sec_context}
 
+=== R&D & TECHNOLOGY INTELLIGENCE (R&D AGENT) ===
+{rd_context}
+
 === LIVE WEB RESEARCH & HEADLINES ({web_source_mode}) ===
 {web_context}
 """
         if papers_context:
             combined_context += f"\n=== ACADEMIC PAPERS (OpenAlex) ===\n{papers_context}\n"
 
-        # Step 5: Synthesize Research Report via Groq or Local Synthesis Fallback
+        # Step 6: Synthesize Research Report via Groq or Local Synthesis Fallback
         report, model_used = await self._synthesize_report(
             company_name=final_company,
             symbol=final_symbol,
             combined_context=combined_context,
             metrics=metrics,
             sec_report=sec_report,
+            rd_report=rd_report,
             web_results=web_results,
             fallbacks_used=fallbacks_used,
         )
 
-        # Build Normalized Web Sources List
+        # Build Normalized Sources List
         sources_list: List[Dict[str, Any]] = []
         for r in web_results:
             sources_list.append({
@@ -239,6 +267,15 @@ class ResearchOrchestrator:
                 "engine": r.get("engine", web_source_mode),
             })
 
+        if rd_report and rd_report.sources:
+            for s in rd_report.sources:
+                sources_list.append({
+                    "title": s.get("title", "R&D Disclosure"),
+                    "url": s.get("url", ""),
+                    "snippet": f"Category: {s.get('category', 'Technology R&D')}",
+                    "engine": s.get("name", "rd_agent"),
+                })
+
         return {
             "company": final_company,
             "ticker": final_symbol,
@@ -247,6 +284,7 @@ class ResearchOrchestrator:
             "full_report": report,
             "financial_metrics": metrics,
             "sec_report": sec_report,
+            "rd_report": rd_report,
             "web_results": web_results,
             "web_source_mode": web_source_mode,
             "papers_results": papers_results,
@@ -262,6 +300,7 @@ class ResearchOrchestrator:
         combined_context: str,
         metrics: Optional[FinancialMetrics],
         sec_report: Optional[SECResearchReport],
+        rd_report: Optional[RDResearchReport],
         web_results: List[Dict[str, Any]],
         fallbacks_used: List[str],
     ) -> Tuple[str, str]:
@@ -272,19 +311,19 @@ class ResearchOrchestrator:
         # If no Groq key, use local heuristic report synthesis
         if not self.groq_api_key or not Groq:
             fallbacks_used.append("GROQ_API_KEY missing -> Using local deterministic report synthesis.")
-            return self._build_local_synthesis(company_name, symbol, metrics, sec_report, web_results), "local_synthesis"
+            return self._build_local_synthesis(company_name, symbol, metrics, sec_report, rd_report, web_results), "local_synthesis"
 
         # Try available Groq models in order
         models_to_try = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
 
         user_prompt = f"""Target Company: {company_name} ({symbol})
 
-Below is the verified data collected from yfinance, SEC EDGAR, and web research:
+Below is the verified data collected from yfinance, SEC EDGAR, and R&D/technology research:
 
 {combined_context}
 
 Please synthesize a comprehensive 6-section research report following the system instructions.
-Explicitly incorporate the financial metrics and cite the provided sources."""
+Explicitly incorporate the financial metrics, R&D discoveries, and cite the provided sources."""
 
         for model in models_to_try:
             try:
@@ -308,7 +347,7 @@ Explicitly incorporate the financial metrics and cite the provided sources."""
 
         # If all Groq models failed, generate local synthesis
         fallbacks_used.append("All Groq models exhausted -> Fell back to local deterministic report synthesis.")
-        return self._build_local_synthesis(company_name, symbol, metrics, sec_report, web_results), "local_synthesis_fallback"
+        return self._build_local_synthesis(company_name, symbol, metrics, sec_report, rd_report, web_results), "local_synthesis_fallback"
 
     def _build_local_synthesis(
         self,
@@ -316,6 +355,7 @@ Explicitly incorporate the financial metrics and cite the provided sources."""
         symbol: str,
         metrics: Optional[FinancialMetrics],
         sec_report: Optional[SECResearchReport],
+        rd_report: Optional[RDResearchReport],
         web_results: List[Dict[str, Any]],
     ) -> str:
         """Constructs an authoritative structured markdown report directly from collected facts."""
@@ -336,7 +376,10 @@ Explicitly incorporate the financial metrics and cite the provided sources."""
         if sec_report and sec_report.filings.get("8-K"):
             for filing in sec_report.filings["8-K"][:2]:
                 sections.append(f"- **SEC 8-K Event ({filing.filing_date})**: Form 8-K current report filed. ([Filing Archive]({filing.source_url}))")
-        if not web_results and (not sec_report or not sec_report.filings.get("8-K")):
+        if rd_report and rd_report.discoveries:
+            for d in [disc for disc in rd_report.discoveries if disc.category in ("New products", "Partnerships", "Acquisitions")][:2]:
+                sections.append(f"- **R&D Milestone ({d.category})**: {d.claim} [{d.epistemic_status}]. [Source URL]({d.source_url})")
+        if not web_results and (not sec_report or not sec_report.filings.get("8-K")) and (not rd_report or not rd_report.discoveries):
             sections.append("- No recent material corporate events detected in public feeds.")
 
         # 3. Revenue & Profit Information
@@ -372,11 +415,18 @@ Explicitly incorporate the financial metrics and cite the provided sources."""
             for fact in sec_report.facts[:5]:
                 sections.append(f"- **{fact.claim}**: {fact.value or 'Disclosed'} (Filing Form {fact.filing_type} dated {fact.filing_date})")
 
+        if rd_report and rd_report.rd_spending:
+            sp = rd_report.rd_spending
+            sections.append(f"\n### Verified Corporate R&D Expenditure (SEC EDGAR)\n- **Reported R&D Expense**: **{sp.get('latest_formatted')}** in Form {sp.get('form')} (Period Ended {sp.get('period_ended')}, Filed {sp.get('filed_date')}). [Filing Archive]({sp.get('source_url')})")
+
         # 4. Major Risks
         sections.append("## 4. Major Risks")
         sections.append("- Competitive headwinds in core market sectors and rapid technological innovation.")
         sections.append("- Macroeconomic sensitivity, interest rate exposure, and global supply chain dependencies.")
         sections.append("- Regulatory oversight and antitrust/compliance scrutiny across international jurisdictions.")
+        if rd_report and rd_report.major_developments:
+            for dev in rd_report.major_developments[:2]:
+                sections.append(f"- **R&D Barrier ({dev.title})**: {dev.key_risks_or_barriers}")
 
         # 5. Growth Opportunities
         sections.append("## 5. Growth Opportunities")
@@ -384,16 +434,38 @@ Explicitly incorporate the financial metrics and cite the provided sources."""
         sections.append("- Capital reinvestment in high-ROI research, development, and strategic partnerships.")
         sections.append("- Operating leverage and margin expansion supported by strong market position.")
 
+        if rd_report and rd_report.major_developments:
+            sections.append("\n### Major Technology Developments & Maturity Analysis (R&D Agent)")
+            for dev in rd_report.major_developments:
+                sections.append(
+                    f"#### {dev.title} ({dev.category})\n"
+                    f"- **Status**: [{dev.epistemic_status}]\n"
+                    f"- **What Company is Researching/Building**: {dev.researching_building}\n"
+                    f"- **How Mature Is It**: {dev.maturity}\n"
+                    f"- **Why Does It Matter**: {dev.why_it_matters}\n"
+                    f"- **What Market Could It Affect**: {dev.market_affected}\n"
+                    f"- **Possible Financial Impact**: {dev.possible_financial_impact}\n"
+                    f"- **What Could Prevent It From Succeeding**: {dev.key_risks_or_barriers}"
+                )
+
+        if rd_report and rd_report.discoveries:
+            sections.append("\n### Key Technological Discoveries Across Categories")
+            for d in rd_report.discoveries[:6]:
+                sections.append(f"- **[{d.epistemic_status}] {d.category}**: {d.claim} (Confidence: {d.confidence:.0%}) - *{d.potential_business_impact}*")
+
         # 6. Sources for Important Claims
         sections.append("## 6. Sources for Important Claims")
         if sec_report and sec_report.filings:
             for form in ("10-K", "10-Q", "8-K", "20-F"):
                 for f in sec_report.filings.get(form, [])[:2]:
                     sections.append(f"- **SEC EDGAR {f.form} Filing** ({f.filing_date}): [{f.form} Source URL]({f.source_url})")
+        if rd_report and rd_report.sources:
+            for s in rd_report.sources[:4]:
+                sections.append(f"- **R&D Disclosure ({s.get('name', 'Technology')})**: [{s.get('title', 'URL')}]({s.get('url', '#')})")
         if web_results:
             for w in web_results:
                 sections.append(f"- **{w.get('title')}**: [{w.get('url')}]({w.get('url')})")
-        if not web_results and (not sec_report or not sec_report.filings):
+        if not web_results and (not sec_report or not sec_report.filings) and (not rd_report or not rd_report.sources):
             sections.append("- Public financial disclosure feeds.")
 
         return "\n\n".join(sections)

@@ -281,7 +281,7 @@ def fetch_live_company_data(raw_query: str) -> Optional[Dict[str, Any]]:
         "progress_steps": [
             {"step": "Web Research", "status": "Completed", "detail": f"Gathered recent market disclosures, corporate filings, and analyst estimates for {company_name}."},
             {"step": "Financial Analysis", "status": "Completed", "detail": f"Verified valuation ratios, margins, and growth indicators in {curr_sym}."},
-            {"step": "Regulatory Research", "status": "Completed", "detail": f"Parsed official corporate filings for {target_symbol} on {market_label}."},
+            {"step": "SEC Research", "status": "Completed", "detail": f"Parsed official corporate filings for {target_symbol} on {market_label}."},
             {"step": "R&D Research", "status": "Completed", "detail": "Surveyed strategic operational reinvestment and technical initiatives."},
             {"step": "Verification", "status": "Completed", "detail": "Cross-checked financial statements against real-time market feeds."},
             {"step": "Final Analysis", "status": "Completed", "detail": "Synthesized 6-factor scorecard and Bull/Base/Bear scenarios."},
@@ -390,7 +390,7 @@ def get_mock_research(query: str = "NVDA", market: str = "NASDAQ") -> Dict[str, 
         "progress_steps": [
             {"step": "Web Research", "status": "Completed", "detail": f"Gathered recent market intelligence for {clean} in {country}."},
             {"step": "Financial Analysis", "status": "Completed", "detail": f"Verified key fundamental valuation metrics and margins in {curr}."},
-            {"step": "Regulatory Research", "status": "Completed", "detail": f"Audited corporate disclosures for {clean}."},
+            {"step": "SEC Research", "status": "Completed", "detail": f"Audited corporate disclosures for {clean}."},
             {"step": "R&D Research", "status": "Completed", "detail": "Surveyed strategic technology roadmap and infrastructure capex."},
             {"step": "Verification", "status": "Completed", "detail": "Cross-referenced data against official market feeds."},
             {"step": "Final Analysis", "status": "Completed", "detail": "Generated qualitative scoring and Bull/Base/Bear scenario targets."},

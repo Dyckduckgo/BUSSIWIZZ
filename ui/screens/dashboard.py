@@ -104,3 +104,12 @@ class DashboardScreen(ft.Container):
         self.progress_panel.update_data(data)
         self._update_tab_content()
         self.tab_container.update()
+
+    def update_progress(self, progress_steps: List[Dict[str, Any]]):
+        """Selectively refreshes the 6-stage execution progress panel."""
+        self.data["progress_steps"] = progress_steps
+        self.progress_panel.update_data({"progress_steps": progress_steps})
+
+    def set_status(self, status_text: str):
+        """Updates the status badge in the header."""
+        self.header.set_status(status_text)

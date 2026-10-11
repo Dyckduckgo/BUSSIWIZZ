@@ -23,6 +23,7 @@ class Sidebar(ft.Container):
         self,
         on_research: Callable[[str, str, str], None],
         on_settings: Callable[[], None],
+        on_cancel: Optional[Callable[[], None]] = None,
         width: int = 300,
     ):
         super().__init__()
@@ -30,6 +31,7 @@ class Sidebar(ft.Container):
         self.bgcolor = BG_SURFACE
         self.padding = 24
         self.border = ft.Border(right=ft.BorderSide(1, BORDER_COLOR))
+        self.on_cancel = on_cancel
 
         # Inputs
         self.ticker_input = ft.TextField(
@@ -77,6 +79,20 @@ class Sidebar(ft.Container):
             ),
         )
 
+        self.cancel_btn = ft.OutlinedButton(
+            content=ft.Row([
+                ft.Icon(ft.Icons.STOP_CIRCLE_OUTLINED, size=18, color="#EF4444"),
+                ft.Text("Cancel Research", color="#EF4444", weight=ft.FontWeight.W_600),
+            ], alignment=ft.MainAxisAlignment.CENTER, spacing=8),
+            style=ft.ButtonStyle(
+                side=ft.BorderSide(1, "#7F1D1D"),
+                shape=ft.RoundedRectangleBorder(radius=8),
+            ),
+            height=40,
+            visible=False,
+            on_click=lambda e: on_cancel() if on_cancel else None,
+        )
+
         self.settings_btn = ft.OutlinedButton(
             content=ft.Row([
                 ft.Icon(ft.Icons.SETTINGS_OUTLINED, size=18, color=TEXT_SECONDARY),
@@ -101,8 +117,8 @@ class Sidebar(ft.Container):
                     padding=8,
                 ),
                 ft.Column([
-                    ft.Text("Bussiwzz", size=18, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
-                    ft.Text("AI Stock Research", size=11, color=ACCENT_CYAN),
+                    ft.Text("AI Stock Research", size=17, weight=ft.FontWeight.BOLD, color=TEXT_PRIMARY),
+                    ft.Text("Multi-Agent Intelligence", size=11, color=ACCENT_CYAN),
                 ], spacing=1),
             ], spacing=12),
 
@@ -116,6 +132,7 @@ class Sidebar(ft.Container):
 
             ft.Container(height=8),
             self.research_btn,
+            self.cancel_btn,
 
             ft.Container(expand=True),
 
@@ -128,3 +145,20 @@ class Sidebar(ft.Container):
                 ft.Text("Local-First Architecture", size=11, color=TEXT_MUTED),
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=4),
         ], spacing=12, expand=True)
+
+    def set_loading(self, is_loading: bool):
+        """Toggles sidebar button states between interactive and researching/cancel."""
+        self.research_btn.disabled = is_loading
+        if is_loading:
+            self.research_btn.content = ft.Row([
+                ft.ProgressRing(width=16, height=16, stroke_width=2, color=TEXT_PRIMARY),
+                ft.Text("Researching...", weight=ft.FontWeight.BOLD),
+            ], alignment=ft.MainAxisAlignment.CENTER, spacing=8)
+            self.cancel_btn.visible = True
+        else:
+            self.research_btn.content = ft.Row([
+                ft.Icon(ft.Icons.ROCKET_LAUNCH, size=18),
+                ft.Text("Research Company", weight=ft.FontWeight.BOLD),
+            ], alignment=ft.MainAxisAlignment.CENTER, spacing=8)
+            self.cancel_btn.visible = False
+        self.update()

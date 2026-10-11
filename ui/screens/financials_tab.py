@@ -65,9 +65,9 @@ class FinancialsTab(ft.Container):
             self._build_metric_card("CURRENT PRICE", f.get("current_price", "$233.95"), "Real-time quote", ft.Icons.ATTACH_MONEY),
             self._build_metric_card("MARKET CAP", f.get("market_cap", "$5.65T"), "Total enterprise equity", ft.Icons.PUBLIC),
             self._build_metric_card("P/E RATIO (TTM)", f.get("pe_ratio", "29.58x"), "Price to earnings", ft.Icons.ANALYTICS_OUTLINED),
-            self._build_metric_card("P/S RATIO (TTM)", f.get("ps_ratio", "18.65x"), "Price to sales", ft.Icons.PIE_CHART_OUTLINED),
+            self._build_metric_card("P/S RATIO (TTM)", f.get("ps_ratio", "18.65x"), "Price to sales", ft.Icons.PIE_CHART),
             self._build_metric_card("EV/EBITDA", f.get("ev_ebitda", "27.90x"), "Enterprise valuation multiple", ft.Icons.INSIGHTS),
-        ], spacing=10, wrap=True)
+        ], spacing=10)
 
         grid_row2 = ft.Row([
             self._build_metric_card("REVENUE (TTM)", f.get("revenue_ttm", "$302.97B"), "Trailing 12-month sales", ft.Icons.TRENDING_UP, SUCCESS_GREEN),
@@ -75,7 +75,7 @@ class FinancialsTab(ft.Container):
             self._build_metric_card("DILUTED EPS", f.get("diluted_eps", "$7.91"), "Earnings per share", ft.Icons.MONETIZATION_ON_OUTLINED),
             self._build_metric_card("GROSS MARGIN", f.get("gross_margin", "74.67%"), "Gross profit efficiency", ft.Icons.PERCENT, SUCCESS_GREEN),
             self._build_metric_card("OPERATING MARGIN", f.get("operating_margin", "66.24%"), "Operating margin leverage", ft.Icons.SHUFFLE, SUCCESS_GREEN),
-        ], spacing=10, wrap=True)
+        ], spacing=10)
 
         grid_row3 = ft.Row([
             self._build_metric_card("FREE CASH FLOW", f.get("free_cash_flow", "$41.81B"), "FCF generation (TTM)", ft.Icons.PAYMENTS_OUTLINED, SUCCESS_GREEN),
@@ -83,7 +83,7 @@ class FinancialsTab(ft.Container):
             self._build_metric_card("TOTAL DEBT", f.get("total_debt", "$38.86B"), "Long & short term debt", ft.Icons.CREDIT_CARD_OUTLINED),
             self._build_metric_card("REVENUE GROWTH", f.get("revenue_growth", "+105.90%"), "Year-over-year expansion", ft.Icons.AUTO_GRAPH, SUCCESS_GREEN),
             self._build_metric_card("EPS GROWTH", f.get("eps_growth", "+127.80%"), "Year-over-year EPS acceleration", ft.Icons.EXPAND_LESS, SUCCESS_GREEN),
-        ], spacing=10, wrap=True)
+        ], spacing=10)
 
         # Historical Quarters Table
         history = f.get("historical_quarters", [])
